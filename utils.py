@@ -34,12 +34,14 @@ def get_documents(doc_path:str='documents'):
             # Adding document details to the list
             documents.append({
                 "id": idx,
-                "name": os.path.splitext(file_name)[0], 
+                "name": os.path.splitext(file_name)[0], # this removes the .txt extension
                 "text": content
             })
 
+
     except FileNotFoundError:
         print(f"Error: The directory '{doc_path}' does not exist.")
+
 
     except Exception as e:
         print(f"An error occurred: {e}")     
