@@ -98,7 +98,55 @@ class RAGPipeline:
         return [{"id": f"{doc_id}_{i}", "text": chunk} for i, chunk in enumerate(chunks)]
     
 
-    
+    def create_knowledge_base(self,
+                              documents: List[Dict[str, str]],
+                              knowledge_base_path: str = f"knowledge_base_{date.today().strftime('%Y_%m_%d')}.json",
+                              embeddings_path: str = f"text_embeddings_{date.today().strftime('%Y_%m_%d')}.npy",
+                              chunking_method: str = "recursive",
+                              chunk_size: int = 500,
+                              overlap: int = 50,
+                              markdown_headers: Optional[List[Dict[str, str]]] = None):
+        """
+        Creates a new knowledge base by processing and indexing documents.
 
+        Args:
+            documents (List[Dict[str, str]]): List of documents (each with "id", "name", and "text").
+            knowledge_base_path (str): Path to save the knowledge base as JSON.
+            embeddings_path (str): Path to save the embeddings as NumPy array.
+            chunking_method (str): Chunking strategy.
+            chunk_size (int): Size of chunks.
+            overlap (int): Overlapping characters between chunks.
+        """
+        self.knowledge_base = {
+            "embedding_model_name": self.embedding_model_name,
+            "documents": []
+        }
+        self.index  = []
+        chunk_texts = []
+        
+        for doc in documents:
+            doc_id   = doc["id"]
+            doc_name = doc["name"]
+            chunks   = self.chunk_text(doc["text"], doc_name=doc_name, doc_id=doc_id, method=chunking_method,
+                                       chunk_size=chunk_size, overlap=overlap, markdown_headers=markdown_headers)
+            self.knowledge_base["documents"].append({
+                "id": doc_id,
+                "name": doc_name,
+                "chunking_technique": chunking_method,
+                "chunks": chunks
+            })
+            self.index.extend(chunks)
+            chunk_texts.extend([chunk["text"] for chunk in chunks])
+        
+        # Load embedding model
+        self.embedding_model = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
+        # Compute text embeddings
+        self.embeddings = np.array(self.embedding_model.embed_documents(chunk_texts))
+
+        # Store BM25 index for hybrid retrieval
+        tokenized_chunks = [chunk.lower().split() for chunk in chunk_texts]
+        self.bm25 = BM25Okapi(tokenized_chunks)
+
+        
 
