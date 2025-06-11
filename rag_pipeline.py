@@ -268,3 +268,113 @@ class RAGPipeline:
 
         # Save the updated knowledge base and embeddings
         self.save_knowledge_base(knowledge_base_path, embeddings_path)
+
+        # Create or update FAISS index with new embeddings
+        if self.faiss_index is None:
+            dim = self.embeddings.shape[1]
+            self.faiss_index = faiss.IndexFlatL2(dim)  # L2 similarity
+        self.faiss_index.add(self.embeddings)
+
+        # Save the updated knowledge base and embeddings
+        self.save_knowledge_base(knowledge_base_path, embeddings_path)
+
+
+    def semantic_search(self,
+                        query: str,
+                        top_k: int = 3) -> List[str]:
+        """
+        Performs semantic search using cosine similarity.
+
+        Args:
+            query (str): User input query.
+            top_k (int): Number of relevant chunks to retrieve.
+
+        Returns:
+            List[str]: Top-k relevant text chunks.
+        """
+        query_embedding = np.array(self.embedding_model.embed_query(query)).reshape(1, -1)
+        similarities = cosine_similarity(query_embedding, self.embeddings)[0]
+        top_indices = np.argsort(similarities)[-top_k:][::-1]
+        return [self.index[i]["text"] for i in top_indices]
+    
+
+    def keyword_search(self,
+                       query: str,
+                       top_k: int = 3) -> List[str]:
+        """
+        Performs keyword-based search using BM25 ranking.
+
+        Args:
+            query (str): User input query.
+            top_k (int): Number of relevant chunks to retrieve.
+
+        Returns:
+            List[str]: Top-k relevant text chunks.
+        """
+        tokenized_query = query.lower().split()
+        scores = self.bm25.get_scores(tokenized_query)
+        top_indices = np.argsort(scores)[-top_k:][::-1]
+        return [self.index[i]["text"] for i in top_indices]
+    
+
+    def similarity_search(self,
+                        query: str,
+                        method: str = "semantic",
+                        top_k: int = 3) -> List[str]:
+        """
+        Retrieves relevant chunks using the chosen search method.
+
+        Args:
+            query (str): User input query.
+            method (str): Retrieval method: "semantic", "keyword", or "hybrid".
+            top_k (int): Number of relevant chunks to retrieve.
+
+        Returns:
+            List[str]: Top-k relevant text chunks.
+        """
+        if method == "semantic":
+            return self.semantic_search(query, top_k)
+
+        elif method == "keyword":
+            return self.keyword_search(query, top_k)
+
+        elif method == "hybrid":
+            semantic_results = self.semantic_search(query, top_k)
+            keyword_results  = self.keyword_search(query, top_k)
+            combined_results = list(set(semantic_results + keyword_results))[:top_k]
+            return combined_results
+
+        else:
+            raise ValueError("Invalid retrieval method. Choose 'semantic', 'keyword', or 'hybrid'.")
+        
+        
+    def generate_response(self,
+                          query: str,
+                          retrieved_chunks: List[str],
+                          instructions: str = "You are a chat assistant who answers briefly using only the provided context.") -> str:
+        """
+        Generates a response using the retrieved chunks as context.
+
+        Args:
+            query (str): User's query.
+            retrieved_chunks (List[str]): Retrieved text chunks to be used as context.
+            instructions (str): System instructions for the generator.
+
+        Returns:
+            str: Generated response from the LLM.
+        """
+        # Combine the retrieved chunks into a single context string
+        context = " ".join(retrieved_chunks)
+
+        # Construct the prompt for the language model
+        prompt = f"Context: {context}\n\nQuestion: {query}"
+
+        # Prepare the augmented prompt
+        augmented_prompt = [
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": prompt},
+        ]
+        # Generate the response
+        response = self.generator(augmented_prompt, max_length=200, truncation=True)
+        # return response[0]["generated_text"]
+        return response[0]["generated_text"][-1]["content"]
