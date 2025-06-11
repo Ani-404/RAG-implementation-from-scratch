@@ -2,6 +2,7 @@ from typing import List, Dict, Optional
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from sklearn.metrics.pairwise import cosine_similarity
+import faiss
 from rank_bm25 import BM25Okapi
 from transformers import pipeline
 from datetime import date
@@ -144,9 +145,126 @@ class RAGPipeline:
         # Compute text embeddings
         self.embeddings = np.array(self.embedding_model.embed_documents(chunk_texts))
 
+        # Get dimensions from the first embedding vector
+        embedding_dim = self.embeddings.shape[1]
+
+        # Create a FAISS index
+        self.faiss_index = faiss.IndexFlatL2(embedding_dim)  # Use L2 (Euclidean); can use cosine too
+
+        # Adding all embeddings to the FAISS index
+        self.faiss_index.add(self.embeddings.astype("float32"))
+
         # Store BM25 index for hybrid retrieval
         tokenized_chunks = [chunk.lower().split() for chunk in chunk_texts]
         self.bm25 = BM25Okapi(tokenized_chunks)
 
+        # Save knowledge base
+        self.save_knowledge_base(knowledge_base_path=knowledge_base_path, embeddings_path=embeddings_path)
         
 
+    def save_knowledge_base(self, 
+                            knowledge_base_path: str, 
+                            embeddings_path: str):
+        """
+        Saves the knowledge base and embeddings to specified paths (locally).
+
+        Args:
+            knowledge_base_path (str): Path to save the knowledge base as JSON.
+            embeddings_path (str): Path to save the embeddings as NumPy array.
+        """
+
+        # Save knowledge base as JSON       
+        with open(knowledge_base_path, 'w') as kb_file:
+            json.dump(self.knowledge_base, kb_file, indent=4)
+        np.save(embeddings_path, self.embeddings)
+
+        print(f"Knowledge base saved to {knowledge_base_path}")
+
+
+    def load_knowledge_base(self,
+                            knowledge_base_path: str,
+                            embeddings_path: str):
+        """
+        Load knowledge base and embeddings from disk.
+
+        Args:
+            knowledge_base_path (str): Path to the knowledge base JSON file.
+            embeddings_path (str): Path to the embeddings numpy file.
+        """
+        with open(knowledge_base_path, "r") as f:
+            self.knowledge_base = json.load(f)
+        self.embeddings = np.load(embeddings_path)
+
+        # Load embedding model
+        stored_model_name         = self.knowledge_base["embedding_model_name"]
+        self.embedding_model_name = stored_model_name
+        self.embedding_model      = HuggingFaceEmbeddings(model_name=stored_model_name)
+
+        # Rebuild self.index from the loaded knowledge base documents
+        self.index = []
+        for doc in self.knowledge_base.get("documents", []):
+            self.index.extend(doc.get("chunks", []))
+
+        # Rebuild BM25 index from all chunk texts
+        all_texts = [chunk["text"] for chunk in self.index]
+        tokenized_all = [text.lower().split() for text in all_texts]
+        self.bm25 = BM25Okapi(tokenized_all)
+
+        print("Knowledge base and embeddings loaded successfully.")
+
+    def add_documents(self,
+                      documents: List[Dict[str, str]],
+                      knowledge_base_path: str = f"knowledge_base_{date.today().strftime('%Y_%m_%d')}.json",
+                      embeddings_path: str = f"text_embeddings_{date.today().strftime('%Y_%m_%d')}.npy",
+                      chunking_method: str = "recursive",
+                      chunk_size: int = 500,
+                      overlap: int = 50,
+                      markdown_headers: Optional[List[Dict[str, str]]] = None):
+        """
+        Adds additional documents to an existing knowledge base.
+
+        Args:
+            documents (List[Dict[str, str]]): List of documents (each with "id", "name", and "text").
+            knowledge_base_path (str): Path to save the knowledge base as JSON.
+            embeddings_path (str): Path to save the embeddings as NumPy array.
+            chunking_method (str): Chunking strategy.
+            chunk_size (int): Size of chunks.
+            overlap (int): Overlapping characters between chunks.
+        """
+        # Collect new chunks and update knowledge base
+        new_chunks      = []
+        new_chunk_texts = []
+
+        for doc in documents:
+            doc_id   = doc["id"]
+            doc_name = doc["name"]
+            chunks   = self.chunk_text(doc["text"], doc_name, doc_id, method=chunking_method,
+                                     chunk_size=chunk_size, overlap=overlap, markdown_headers=markdown_headers)
+            self.knowledge_base["documents"].append({
+                "id": doc_id,
+                "name": doc_name,
+                "chunking_technique": chunking_method,
+                "chunks": chunks
+            })
+            new_chunks.extend(chunks)
+            new_chunk_texts.extend([chunk["text"] for chunk in chunks])
+            self.index.extend(chunks)
+
+        # Compute embeddings for new chunks
+        new_embeddings = np.array(self.embedding_model.embed_documents(new_chunk_texts))
+        if self.embeddings.size:
+            self.embeddings = np.vstack([self.embeddings, new_embeddings])
+        else:
+            self.embeddings = new_embeddings
+
+        # Update BM25 index with new chunks
+        all_tokenized = [chunk.lower().split() for chunk in new_chunk_texts]
+        if self.bm25 is None:
+            self.bm25 = BM25Okapi(all_tokenized)
+        else:
+            # BM25Okapi doesn't support incremental updates directly; recreate with existing + new tokens.
+            all_texts = [doc["text"] for doc in self.index]
+            self.bm25 = BM25Okapi([text.split() for text in all_texts])
+
+        # Save the updated knowledge base and embeddings
+        self.save_knowledge_base(knowledge_base_path, embeddings_path)
