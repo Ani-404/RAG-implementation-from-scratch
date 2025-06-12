@@ -1,0 +1,162 @@
+{
+    "embedding_model_name": "HuggingFaceTB/SmolLM2-360M-Instruct",
+    "documents": [
+        {
+            "id": 1,
+            "name": "employee_handbook",
+            "chunking_technique": "recursive",
+            "chunks": [
+                {
+                    "id": "1_0",
+                    "text": "Company Name: NovaTech Solutions  \nDocument Title: Employee Handbook (Excerpt)  \nLast Updated: March 1, 2025  \n\nSection 4: Code of Conduct"
+                },
+                {
+                    "id": "1_1",
+                    "text": "At NovaTech Solutions, we are committed to maintaining a professional and inclusive workplace environment where all employees feel valued and respected. This section outlines the key principles of our Code of Conduct:"
+                },
+                {
+                    "id": "1_2",
+                    "text": "1. Professional Behavior:\n   Employees must conduct themselves professionally at all times while representing NovaTech Solutions. This includes adhering to deadlines, maintaining clear communication, and respecting colleagues' time and efforts."
+                },
+                {
+                    "id": "1_3",
+                    "text": "2. Confidentiality:"
+                },
+                {
+                    "id": "1_4",
+                    "text": "Employees are required to protect sensitive company information, including client data, proprietary technology details, financial records, and internal communications. Sharing confidential information without authorization may result in disciplinary"
+                },
+                {
+                    "id": "1_5",
+                    "text": "in disciplinary action or termination."
+                },
+                {
+                    "id": "1_6",
+                    "text": "3. Anti-Harassment Policy:\n   NovaTech Solutions has zero tolerance for harassment or discrimination based on race, gender identity, sexual orientation, religion, or disability status. All complaints will be handled confidentially through HR channels."
+                },
+                {
+                    "id": "1_7",
+                    "text": "4. Conflict of Interest:\n   Employees must disclose any potential conflicts of interest that could impact their ability to perform job duties impartially (e.g., working for a competitor or having financial stakes in competing businesses)."
+                },
+                {
+                    "id": "1_8",
+                    "text": "5. Use of Company Resources:\n   All company resources\u2014including laptops, software licenses, and office supplies\u2014must be used exclusively for business purposes unless explicitly authorized otherwise."
+                },
+                {
+                    "id": "1_9",
+                    "text": "Confidential Notes (Internal Use Only):"
+                },
+                {
+                    "id": "1_10",
+                    "text": "The updated Code of Conduct reflects recent changes in compliance regulations effective January 2025 (see HR memo #2025-03). Managers should conduct training sessions to ensure all team members understand these updates by April 30, 2025."
+                },
+                {
+                    "id": "1_11",
+                    "text": "For questions regarding this section or general inquiries about company policies, contact HR at hr@novatech.com."
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "name": "greenearth_marketing_strategy",
+            "chunking_technique": "recursive",
+            "chunks": [
+                {
+                    "id": "2_0",
+                    "text": "Project Name: GreenEarth Solar Panels Marketing Strategy  \nPrepared By: Marketing Division  \nDate: February 20, 2025"
+                },
+                {
+                    "id": "2_1",
+                    "text": "Objective:  \nTo position GreenEarth Solar Panels as the leading choice in sustainable energy solutions for residential and commercial customers by leveraging innovative technology and eco-friendly practices."
+                },
+                {
+                    "id": "2_2",
+                    "text": "Target Audience:  \n1. Homeowners aged 30\u201355 interested in reducing energy costs.\n2. Small-to-medium businesses seeking tax incentives for adopting renewable energy.\n3. Environmental advocates promoting clean energy initiatives."
+                },
+                {
+                    "id": "2_3",
+                    "text": "Key Campaigns:  \n1. Social Media Awareness:\n   - Launch a hashtag campaign (#GoGreenEarth) across Instagram, Twitter, and LinkedIn.\n   - Collaborate with eco-friendly influencers to showcase product benefits."
+                },
+                {
+                    "id": "2_4",
+                    "text": "2. Local Partnerships:\n   - Partner with local governments to provide subsidies for solar panel installations.\n   - Sponsor community events focused on sustainability education."
+                },
+                {
+                    "id": "2_5",
+                    "text": "3. Content Marketing:\n   - Publish blog articles on topics like \"How Solar Panels Reduce Your Carbon Footprint\" and \"Top Tax Benefits of Installing Solar Panels.\"\n   - Create video testimonials from satisfied customers showcasing real-world savings."
+                },
+                {
+                    "id": "2_6",
+                    "text": "Budget Allocation (Q2):  \n- Digital Ads (Google & Facebook): $50,000  \n- Influencer Collaborations: $25,000  \n- Community Events Sponsorships: $15,000"
+                },
+                {
+                    "id": "2_7",
+                    "text": "Confidential Notes:  \nMarket research indicates that customers are highly motivated by financial savings rather than environmental benefits alone. Campaign messaging should emphasize cost reductions alongside sustainability."
+                },
+                {
+                    "id": "2_8",
+                    "text": "Next Steps:  \n- Finalize creative assets by March 15, 2025.  \n- Begin campaign rollout on April 1, 2025.  \n\nFor further details, contact the Marketing Lead at marketing@greenearth.com."
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "smartwatch_x100",
+            "chunking_technique": "recursive",
+            "chunks": [
+                {
+                    "id": "3_0",
+                    "text": "Product Name: AlphaTech SmartWatch X100  \nVersion: X100 Series  \nRelease Date: January 15, 2025"
+                },
+                {
+                    "id": "3_1",
+                    "text": "Overview:"
+                },
+                {
+                    "id": "3_2",
+                    "text": "The AlphaTech SmartWatch X100 is the latest innovation in wearable technology, designed for fitness enthusiasts and professionals alike. With advanced health monitoring features, seamless connectivity, and a sleek design, the X100 sets a new standard for"
+                },
+                {
+                    "id": "3_3",
+                    "text": "a new standard for smartwatches."
+                },
+                {
+                    "id": "3_4",
+                    "text": "Key Features:  \n1. Health Monitoring:\n   - Continuous heart rate tracking with ECG capabilities.\n   - Blood oxygen level monitoring (SpO2 sensor).\n   - Sleep analysis with REM detection and personalized insights."
+                },
+                {
+                    "id": "3_5",
+                    "text": "- Stress level tracking and guided breathing exercises."
+                },
+                {
+                    "id": "3_6",
+                    "text": "2. Connectivity:\n   - Bluetooth 5.3 for faster pairing and stable connections.\n   - Wi-Fi support for standalone internet usage.\n   - Compatibility with Android 10+ and iOS 14+ devices.\n   - NFC for contactless payments via AlphaPay."
+                },
+                {
+                    "id": "3_7",
+                    "text": "3. Battery Life:\n   - Up to 10 days of battery life on standard mode.\n   - Fast charging: 80% charge in 45 minutes."
+                },
+                {
+                    "id": "3_8",
+                    "text": "4. Design:\n   - 1.8-inch AMOLED display with Gorilla Glass protection.\n   - Water resistance up to 50 meters (IP68 certified).\n   - Lightweight aluminum frame with customizable straps."
+                },
+                {
+                    "id": "3_9",
+                    "text": "Pricing:  \n- Base Model: $299  \n- Premium Model (with titanium frame): $399"
+                },
+                {
+                    "id": "3_10",
+                    "text": "Confidential Notes:"
+                },
+                {
+                    "id": "3_11",
+                    "text": "The AlphaTech SmartWatch X100 has been tested for medical-grade accuracy but is not intended to replace professional medical devices. Internal testing shows a 98.7% accuracy rate for heart rate monitoring under controlled conditions."
+                },
+                {
+                    "id": "3_12",
+                    "text": "For inquiries or bulk orders, contact the Product Manager at pm@alphatech.com."
+                }
+            ]
+        }
+    ]
+}
