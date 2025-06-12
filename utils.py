@@ -1,9 +1,8 @@
-
 # utils script - useful function(s) to use with the RAG pipeline 
 
 import os
 
-def get_documents(doc_path:str='documents'):
+def get_documents(doc_path:str=r'C:\Users\anime\OneDrive\Desktop\RAG-implementation-from-scratch\documents'):
     """
     Retrieves all .txt documents from the specified directory and stores them
     in a list of dictionaries with id, name, and text.
@@ -47,4 +46,5 @@ def get_documents(doc_path:str='documents'):
         print(f"An error occurred: {e}")     
 
 
-    return documents 
+    return documents
+

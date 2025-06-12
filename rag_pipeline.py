@@ -1,4 +1,5 @@
 # rag_pipeline.py
+
 from typing import List, Dict, Optional
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -32,7 +33,7 @@ class RAGPipeline:
 
     def __init__(self,
                  embedding_model = 'sentence-transformers/all-MiniLM-l6-v2',
-                 generator_model = 'TinyLlama/TinyLlama-1.1B-Chat'):
+                 generator_model = 'HuggingFaceTB/SmolLM2-360M-Instruct'):
         
         """
         Initialize the RAG pipeline.
@@ -51,7 +52,6 @@ class RAGPipeline:
             "text-generation",
             model=generator_model,
             model_kwargs={"torch_dtype": "auto"},
-            device_map="auto",
         )
 
         # Storage for indexed data
@@ -147,16 +147,20 @@ class RAGPipeline:
         self.embeddings = np.array(self.embedding_model.embed_documents(chunk_texts))
 
         # Get dimensions from the first embedding vector
-        embedding_dim = self.embeddings.shape[1]
+        # embedding_dim = self.embeddings.shape[1]
 
-        # Create a FAISS index
-        self.faiss_index = faiss.IndexFlatL2(embedding_dim)  # Use L2 (Euclidean); can use cosine too
+        # # Create a FAISS index
+        # self.faiss_index = faiss.IndexFlatL2(embedding_dim)  # Use L2 (Euclidean); can use cosine too
 
-        # Adding all embeddings to the FAISS index
-        self.faiss_index.add(self.embeddings.astype("float32"))
+        # # Adding all embeddings to the FAISS index
+        # self.faiss_index.add(self.embeddings.astype("float32"))
 
+        
         # Store BM25 index for hybrid retrieval
         tokenized_chunks = [chunk.lower().split() for chunk in chunk_texts]
+
+        if not tokenized_chunks:
+            raise ValueError("Tokenized chunks are empty — cannot build BM25 index.")
         self.bm25 = BM25Okapi(tokenized_chunks)
 
         # Save knowledge base
