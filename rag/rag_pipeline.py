@@ -1,4 +1,4 @@
-# rag_pipeline.py
+# Use this RagPipeline class to create a RAG system that can chunk, embed, index, retrieve, and generate responses based on documents.
 
 from typing import List, Dict, Optional
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
@@ -146,16 +146,19 @@ class RAGPipeline:
         # Compute text embeddings
         self.embeddings = np.array(self.embedding_model.embed_documents(chunk_texts))
 
+        # Ensure embeddings exist
+        if self.embeddings.size == 0:
+            raise ValueError("No embeddings computed; check your chunk_texts.")
+
         # Get dimensions from the first embedding vector
-        # embedding_dim = self.embeddings.shape[1]
+        embedding_dim = self.embeddings.shape[1]
 
-        # # Create a FAISS index
-        # self.faiss_index = faiss.IndexFlatL2(embedding_dim)  # Use L2 (Euclidean); can use cosine too
+        # Create a FAISS index (L2 distance; change to cosine if preferred)
+        self.faiss_index = faiss.IndexFlatL2(embedding_dim)
 
-        # # Adding all embeddings to the FAISS index
-        # self.faiss_index.add(self.embeddings.astype("float32"))
+        # Add embeddings to the FAISS index
+        self.faiss_index.add(self.embeddings.astype("float32"))
 
-        
         # Store BM25 index for hybrid retrieval
         tokenized_chunks = [chunk.lower().split() for chunk in chunk_texts]
 
