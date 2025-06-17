@@ -92,7 +92,7 @@ class RAGPipeline:
             if markdown_headers:
                 splitter = MarkdownHeaderTextSplitter(headers_to_split_on=markdown_headers)
             else:
-                CharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+                splitter = CharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
         else:
             raise ValueError("Unsupported chunking method. Choose from 'fixed', 'recursive', and 'document'.")
 
@@ -119,7 +119,7 @@ class RAGPipeline:
             chunk_size (int): Size of chunks.
             overlap (int): Overlapping characters between chunks.
         """
-        self.knowledge_base = {
+        self.knowledge_base = { 
             "embedding_model_name": self.embedding_model_name,
             "documents": []
         }
