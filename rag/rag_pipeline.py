@@ -140,15 +140,14 @@ class RAGPipeline:
             self.index.extend(chunks)
             chunk_texts.extend([chunk["text"] for chunk in chunks])
         
+        # Store the chunk texts for later retrieval
+        self.chunk_texts = chunk_texts
+
         # Load embedding model
         self.embedding_model = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
         # Compute text embeddings
         self.embeddings = np.array(self.embedding_model.embed_documents(chunk_texts))
-
-        # Ensure embeddings exist
-        if self.embeddings.size == 0:
-            raise ValueError("No embeddings computed; check your chunk_texts.")
 
         # Get dimensions from the first embedding vector
         embedding_dim = self.embeddings.shape[1]
@@ -191,7 +190,8 @@ class RAGPipeline:
 
     def load_knowledge_base(self,
                             knowledge_base_path: str,
-                            embeddings_path: str):
+                            embeddings_path: str,
+                            faiss_index_path: str = None):
         """
         Load knowledge base and embeddings from disk.
 
@@ -217,6 +217,19 @@ class RAGPipeline:
         all_texts = [chunk["text"] for chunk in self.index]
         tokenized_all = [text.lower().split() for text in all_texts]
         self.bm25 = BM25Okapi(tokenized_all)
+
+        # Rebuild or load FAISS index
+        embedding_dim = self.embeddings.shape[1]
+        if faiss_index_path and os.path.exists(faiss_index_path):
+            self.faiss_index = faiss.read_index(faiss_index_path)
+            print("Loaded FAISS index from file.")
+        else:
+            self.faiss_index = faiss.IndexFlatL2(embedding_dim)
+            self.faiss_index.add(self.embeddings.astype("float32"))
+            print("Rebuilt FAISS index from embeddings.")
+
+        # Load chunk texts from the knowledge base  
+        self.chunk_texts = all_texts
 
         print("Knowledge base and embeddings loaded successfully.")
 
@@ -274,9 +287,6 @@ class RAGPipeline:
             all_texts = [doc["text"] for doc in self.index]
             self.bm25 = BM25Okapi([text.split() for text in all_texts])
 
-        # Save the updated knowledge base and embeddings
-        self.save_knowledge_base(knowledge_base_path, embeddings_path)
-
         # Create or update FAISS index with new embeddings
         if self.faiss_index is None:
             dim = self.embeddings.shape[1]
@@ -325,6 +335,33 @@ class RAGPipeline:
         return [self.index[i]["text"] for i in top_indices]
     
 
+    def faiss_search(self, query: str, top_k: int = 5) -> List[Dict[str, str]]:
+        """
+        Perform semantic search using FAISS.
+
+        Args:
+            query (str): The user query string.
+            top_k (int): Number of top results to retrieve.
+
+        Returns:
+            List[Dict[str, str]]: A list of dictionaries with chunk and score.
+        """
+        if not hasattr(self, 'faiss_index'):
+            raise ValueError("FAISS index not found. Make sure it is built or loaded before calling this method.")
+        if not hasattr(self, 'chunk_texts'):
+            raise ValueError("chunk_texts not found. Ensure texts were stored during indexing.")
+
+        # Embed the query using the same model
+        query_embedding = self.embedding_model.embed_query(query)
+        query_embedding = np.array(query_embedding).astype("float32").reshape(1, -1)
+
+        # Perform similarity search
+        distances, indices = self.faiss_index.search(query_embedding, top_k)
+
+        # Return the top-k results as text chunks
+        return [self.chunk_texts[idx] for idx in indices[0] if idx < len(self.chunk_texts)]
+
+
     def similarity_search(self,
                         query: str,
                         method: str = "semantic",
@@ -349,7 +386,8 @@ class RAGPipeline:
         elif method == "hybrid":
             semantic_results = self.semantic_search(query, top_k)
             keyword_results  = self.keyword_search(query, top_k)
-            combined_results = list(set(semantic_results + keyword_results))[:top_k]
+            faiss_results     = self.faiss_search(query, top_k)
+            combined_results = list(set(semantic_results + keyword_results + faiss_results ))[:top_k]
             return combined_results
 
         else:

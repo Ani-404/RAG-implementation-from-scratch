@@ -35,9 +35,9 @@ if __name__ == "__main__":
 
     query = "What is the battery life of the AlphaTech SmartWatch X100, and does it support fast charging?" if args.query is None else args.query
 
-    context = rag.similarity_search(query, method="semantic", top_k=3)
+    context = rag.similarity_search(query, method="hybrid", top_k=3)
 
-    print("Semantic Search Results (AI):", context)
+    print("Hybrid Search Results (AI):", context)
 
     response = rag.generate_response(query, context)
 
