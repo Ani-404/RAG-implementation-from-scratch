@@ -138,7 +138,7 @@ class RAGPipeline:
                 "chunks": chunks
             })
             self.index.extend(chunks)
-            chunk_texts.extend([chunk["text"] for chunk in chunks])
+            chunk_texts.extend(chunks)
         
         # Store the chunk texts for later retrieval
         self.chunk_texts = chunk_texts
@@ -147,7 +147,8 @@ class RAGPipeline:
         self.embedding_model = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
 
         # Compute text embeddings
-        self.embeddings = np.array(self.embedding_model.embed_documents(chunk_texts))
+        self.embeddings = np.array(self.embedding_model.embed_documents([chunk["text"] for chunk in self.chunk_texts])
+)
 
         # Get dimensions from the first embedding vector
         embedding_dim = self.embeddings.shape[1]
@@ -159,7 +160,7 @@ class RAGPipeline:
         self.faiss_index.add(self.embeddings.astype("float32"))
 
         # Store BM25 index for hybrid retrieval
-        tokenized_chunks = [chunk.lower().split() for chunk in chunk_texts]
+        tokenized_chunks = [chunk["text"].lower().split() for chunk in chunk_texts]
 
         if not tokenized_chunks:
             raise ValueError("Tokenized chunks are empty — cannot build BM25 index.")
@@ -359,8 +360,11 @@ class RAGPipeline:
         distances, indices = self.faiss_index.search(query_embedding, top_k)
 
         # Return the top-k results as text chunks
-        return [self.chunk_texts[idx] for idx in indices[0] if idx < len(self.chunk_texts)]
-
+        return [
+        self.chunk_texts[idx]
+        for idx in indices[0]
+        if idx < len(self.chunk_texts)
+    ]
 
     def similarity_search(self,
                         query: str,
