@@ -326,4 +326,63 @@ If you use this implementation in your research or project, please cite:
 }
 ```
 
+## Future Enhancements
 
+- Integration with vector databases (Pinecone, Weaviate)
+- Support for multimodal retrieval (images, PDFs)
+- Advanced ranking algorithms (ColBERT, DPR)
+- Fine-tuning capabilities for custom domains
+- Web UI for interactive querying
+- Evaluation dashboard with metrics visualization
+
+## Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- Adding support for additional document formats
+- Implementing more advanced retrieval algorithms
+- Performance optimizations
+- Better error handling
+- Documentation improvements
+
+Please open an issue or submit a pull request with your suggestions.
+
+## License
+
+This project is licensed under the MIT License. See LICENSE file for details.
+
+## Citation
+
+If you use this implementation in your research or project, please cite:
+
+```
+@software{rag_implementation_2025,
+  title={RAG Implementation from Scratch},
+  author={Ani-404},
+  year={2025},
+  url={https://github.com/Ani-404/RAG-implementation-from-scratch}
+}
+```
+
+## Resources and References
+
+- [LangChain Text Splitters Documentation](https://python.langchain.com/docs/modules/data_connection/document_transformers/)
+- [FAISS Documentation](https://github.com/facebookresearch/faiss)
+- [BM25 Algorithm Explanation](https://en.wikipedia.org/wiki/Okapi_BM25)
+- [HuggingFace Models Hub](https://huggingface.co/models)
+- [Retrieval-Augmented Generation Paper](https://arxiv.org/abs/2005.11401)
+
+## Contact & Support
+
+For questions, issues, or suggestions, please reach out:
+
+- **GitHub Issues**: Open an issue on the repository
+- **Email**: Contact through GitHub profile
+
+---
+
+**Last Updated**: November 2025
+
+**Status**: Active Development
+
+**Maintained By**: Ani-404
