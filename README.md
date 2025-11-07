@@ -288,4 +288,42 @@ pip install -r requirements.txt
 
 **Solution**: Use faster FAISS indices (IndexIVFFlat for large datasets)
 
+## Future Enhancements
+
+- Integration with vector databases (Pinecone, Weaviate)
+- Support for multimodal retrieval (images, PDFs)
+- Advanced ranking algorithms (ColBERT, DPR)
+- Fine-tuning capabilities for custom domains
+- Web UI for interactive querying
+- Evaluation dashboard with metrics visualization
+
+## Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- Adding support for additional document formats
+- Implementing more advanced retrieval algorithms
+- Performance optimizations
+- Better error handling
+- Documentation improvements
+
+Please open an issue or submit a pull request with your suggestions.
+
+## License
+
+This project is licensed under the MIT License. See LICENSE file for details.
+
+## Citation
+
+If you use this implementation in your research or project, please cite:
+
+```
+@software{rag_implementation_2025,
+  title={RAG Implementation from Scratch},
+  author={Ani-404},
+  year={2025},
+  url={https://github.com/Ani-404/RAG-implementation-from-scratch}
+}
+```
+
 
