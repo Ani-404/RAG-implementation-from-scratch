@@ -1,0 +1,14 @@
+﻿# Core text processing & chunking
+langchain-text-splitters
+langchain-community
+
+# Embeddings & Vector Search
+sentence-transformers
+faiss-cpu
+rank-bm25
+scikit-learn
+
+# Model inference & Deep Learning backend
+transformers
+torch
+numpy
