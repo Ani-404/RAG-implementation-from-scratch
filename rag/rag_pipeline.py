@@ -390,8 +390,8 @@ class RAGPipeline:
         elif method == "hybrid":
             semantic_results = self.semantic_search(query, top_k)
             keyword_results  = self.keyword_search(query, top_k)
-            faiss_results     = self.faiss_search(query, top_k)
-            combined_results = list(set(semantic_results + keyword_results + faiss_results ))[:top_k]
+            faiss_results     = [c["text"] if isinstance(c, dict) else c for c in self.faiss_search(query, top_k)]
+            combined_results = list(set(semantic_results + keyword_results + faiss_results))[:top_k]
             return combined_results
 
         else:
