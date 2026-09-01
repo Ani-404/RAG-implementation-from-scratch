@@ -7,7 +7,10 @@ rag = RAGPipeline(embedding_model = 'sentence-transformers/all-MiniLM-l6-v2',
 
 
 
-with open(r"C:\Users\anime\OneDrive\Desktop\RAG-implementation-from-scratch\rag\documents\employee_handbook.txt", "r", encoding="utf-8") as f:
+import os
+
+file_path = os.path.join(os.path.dirname(__file__), "documents", "employee_handbook.txt")
+with open(file_path, "r", encoding="utf-8") as f:
     text = f.read()
 
 chunks = rag.chunk_text(
