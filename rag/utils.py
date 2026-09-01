@@ -20,9 +20,10 @@ def get_documents(doc_path: str = DEFAULT_DOCS_PATH):
     """
     documents = []
 
+    supported_extensions = ('.txt', '.md', '.markdown')
     try:
-        # a list of all files in the directory
-        files = [f for f in os.listdir(doc_path) if f.endswith('.txt')]
+        # a list of all supported files in the directory
+        files = sorted([f for f in os.listdir(doc_path) if f.lower().endswith(supported_extensions)])
         
         # iterate through all the .txt files
         for idx, file_name in enumerate(files, start=1):

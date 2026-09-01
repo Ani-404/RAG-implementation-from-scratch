@@ -34,6 +34,9 @@ if __name__ == "__main__":
                         help    = 'Path of stored text-based documents.',
                         type    = str,
                         default = None)
+    parser.add_argument('-i', '--interactive',
+                        help    = 'Start an interactive continuous Q&A session in the terminal',
+                        action  = 'store_true')
     args = parser.parse_args()
 
     # Setup documents (uses local documents directory by default)
@@ -42,16 +45,34 @@ if __name__ == "__main__":
     # Setup RAG pipeline
     rag = RAGPipeline(embedding_model=args.embedder, generator_model=args.generator)
     
-    # Create knowledge base
-    rag.create_knowledge_base(documents, chunking_method="recursive", chunk_size=256, overlap=20)
+    # Create knowledge base with 500 character chunks for rich semantic context
+    rag.create_knowledge_base(documents, chunking_method="recursive", chunk_size=500, overlap=50)
 
-    query = "What is the battery life of the AlphaTech SmartWatch X100, and does it support fast charging?" if args.query is None else args.query
+    def answer_query(user_query: str):
+        context = rag.similarity_search(user_query, method=args.method, top_k=args.top_k, rerank=args.rerank)
+        response = rag.generate_response(user_query, context)
+        print("\n" + "-" * 60)
+        print(f"Assistant: {response}")
+        print("-" * 60)
+        print(f"[Retrieved {len(context)} chunks using {args.method.upper()}{' + RERANKER' if args.rerank else ''}]")
 
-    context = rag.similarity_search(query, method=args.method, top_k=args.top_k, rerank=args.rerank)
-
-    print(f"\nRetrieved Context ({args.method.upper()}{' + Reranker' if args.rerank else ''}):\n", context)
-
-    response = rag.generate_response(query, context)
-
-    print("\nUser: ", query)
-    print("Assistant: ", response)
+    if args.interactive:
+        print("\n" + "=" * 60)
+        print("  RAG Interactive Mode (Type 'exit' or 'quit' to stop)")
+        print("=" * 60)
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
+                if not user_input:
+                    continue
+                if user_input.lower() in ("exit", "quit", "q"):
+                    print("Exiting interactive mode.")
+                    break
+                answer_query(user_input)
+            except (KeyboardInterrupt, EOFError):
+                print("\nSession ended.")
+                break
+    else:
+        query = "What is the battery life of the AlphaTech SmartWatch X100, and does it support fast charging?" if args.query is None else args.query
+        print(f"\nUser: {query}")
+        answer_query(query)
