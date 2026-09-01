@@ -6,6 +6,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from sklearn.metrics.pairwise import cosine_similarity
 import faiss
 from rank_bm25 import BM25Okapi
+from sentence_transformers import CrossEncoder
 from transformers import pipeline
 from datetime import date
 import numpy as np
@@ -20,11 +21,13 @@ class RAGPipeline:
     Embedding: Converting these text chunks into vector 
     Indexing: Storing embeddings for efficient retrieval.
     Retrieval: Fetching relevant chunks based on query similarity.
+    Reranking: Scoring candidates with a Cross-Encoder for higher precision.
     Generation: Using retrieved context to generate responses.
 
         Key Features:
       * Supports multiple chunking strategies.
-      * Offers keyword-based, semantic, and hybrid search.
+      * Offers keyword-based, semantic, hybrid, and RRF search.
+      * Cross-Encoder reranking for precision retrieval.
       * Integrated with Hugging Face models for embedding and generation.
       * Supports local storage of knowledge base (JSON) and embeddings (NumPy).
       * Easily extendable to add new documents.
@@ -33,7 +36,8 @@ class RAGPipeline:
 
     def __init__(self,
                  embedding_model = 'sentence-transformers/all-MiniLM-l6-v2',
-                 generator_model = 'HuggingFaceTB/SmolLM2-360M-Instruct'):
+                 generator_model = 'HuggingFaceTB/SmolLM2-360M-Instruct',
+                 reranker_model = 'cross-encoder/ms-marco-MiniLM-L-6-v2'):
         
         """
         Initialize the RAG pipeline.
@@ -41,11 +45,16 @@ class RAGPipeline:
         Args:
             embedding_model (str): Pretrained text embedding name.
             generator_model (str): Pretrained text generation model name.
+            reranker_model (str): Pretrained cross-encoder reranker model name.
         """
 
         # Setup embedding model
         self.embedding_model_name = embedding_model
         self.embedding_model      = None  # Initially set embedding_model to None; it will be loaded when creating/loading a KB.
+
+        # Setup cross-encoder reranker model
+        self.reranker_model_name = reranker_model
+        self.reranker            = None
 
         # Load text generation model
         self.generator = pipeline(
@@ -366,36 +375,117 @@ class RAGPipeline:
         if idx < len(self.chunk_texts)
     ]
 
-    def similarity_search(self,
-                        query: str,
-                        method: str = "semantic",
-                        top_k: int = 3) -> List[str]:
+    def reciprocal_rank_fusion(self,
+                               ranked_lists: List[List[str]],
+                               top_k: int = 3,
+                               rrf_k: int = 60) -> List[str]:
         """
-        Retrieves relevant chunks using the chosen search method.
+        Combines multiple ranked lists of chunks using Reciprocal Rank Fusion (RRF).
+
+        Formula: RRF_Score(d) = sum(1.0 / (rrf_k + rank(d)))
+
+        Args:
+            ranked_lists (List[List[str]]): List of ranked chunk lists from different retrievers.
+            top_k (int): Number of top results to return.
+            rrf_k (int): Smoothing constant (standard default is 60).
+
+        Returns:
+            List[str]: Combined and reranked text chunks.
+        """
+        rrf_scores = {}
+        for ranked_list in ranked_lists:
+            for rank, item in enumerate(ranked_list, start=1):
+                if item not in rrf_scores:
+                    rrf_scores[item] = 0.0
+                rrf_scores[item] += 1.0 / (rrf_k + rank)
+
+        sorted_chunks = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)
+        return sorted_chunks[:top_k]
+
+    def rerank(self,
+               query: str,
+               candidate_chunks: List[str],
+               top_k: int = 3) -> List[str]:
+        """
+        Reranks candidate chunks using a cross-encoder model for high-precision matching.
+
+        Args:
+            query (str): User query string.
+            candidate_chunks (List[str]): List of candidate chunks to rerank.
+            top_k (int): Number of top reranked chunks to return.
+
+        Returns:
+            List[str]: Top-k chunks sorted by cross-encoder relevance score.
+        """
+        if not candidate_chunks:
+            return []
+
+        # Lazy-load cross-encoder model on first call
+        if self.reranker is None:
+            self.reranker = CrossEncoder(self.reranker_model_name)
+
+        # Score (query, chunk) pairs
+        pairs = [[query, chunk] for chunk in candidate_chunks]
+        scores = self.reranker.predict(pairs)
+
+        # Sort candidate chunks by score in descending order
+        ranked_indices = np.argsort(scores)[::-1][:top_k]
+        return [candidate_chunks[i] for i in ranked_indices]
+
+    def similarity_search(self,
+                          query: str,
+                          method: str = "hybrid_rrf",
+                          top_k: int = 3,
+                          rerank: bool = False,
+                          rerank_candidates: int = 10) -> List[str]:
+        """
+        Retrieves relevant chunks using the chosen search method, with optional cross-encoder reranking.
 
         Args:
             query (str): User input query.
-            method (str): Retrieval method: "semantic", "keyword", or "hybrid".
-            top_k (int): Number of relevant chunks to retrieve.
+            method (str): Retrieval method: "semantic", "keyword", "faiss", "hybrid", or "hybrid_rrf".
+            top_k (int): Number of relevant chunks to return.
+            rerank (bool): Whether to apply cross-encoder reranking on retrieved candidates.
+            rerank_candidates (int): Number of candidate chunks to fetch before reranking.
 
         Returns:
             List[str]: Top-k relevant text chunks.
         """
+        fetch_k = max(top_k, rerank_candidates) if rerank else top_k
+
         if method == "semantic":
-            return self.semantic_search(query, top_k)
+            results = self.semantic_search(query, fetch_k)
 
         elif method == "keyword":
-            return self.keyword_search(query, top_k)
+            results = self.keyword_search(query, fetch_k)
+
+        elif method == "faiss":
+            raw_faiss = self.faiss_search(query, fetch_k)
+            results = [c["text"] if isinstance(c, dict) else c for c in raw_faiss]
 
         elif method == "hybrid":
-            semantic_results = self.semantic_search(query, top_k)
-            keyword_results  = self.keyword_search(query, top_k)
-            faiss_results     = [c["text"] if isinstance(c, dict) else c for c in self.faiss_search(query, top_k)]
-            combined_results = list(set(semantic_results + keyword_results + faiss_results))[:top_k]
-            return combined_results
+            semantic_results = self.semantic_search(query, fetch_k)
+            keyword_results  = self.keyword_search(query, fetch_k)
+            faiss_results     = [c["text"] if isinstance(c, dict) else c for c in self.faiss_search(query, fetch_k)]
+            results = list(set(semantic_results + keyword_results + faiss_results))[:fetch_k]
+
+        elif method == "hybrid_rrf":
+            semantic_results = self.semantic_search(query, fetch_k)
+            keyword_results  = self.keyword_search(query, fetch_k)
+            faiss_raw        = self.faiss_search(query, fetch_k)
+            faiss_results    = [c["text"] if isinstance(c, dict) else c for c in faiss_raw]
+            results = self.reciprocal_rank_fusion(
+                [semantic_results, keyword_results, faiss_results],
+                top_k=fetch_k
+            )
 
         else:
-            raise ValueError("Invalid retrieval method. Choose 'semantic', 'keyword', or 'hybrid'.")
+            raise ValueError(f"Invalid retrieval method: '{method}'. Choose from 'semantic', 'keyword', 'faiss', 'hybrid', or 'hybrid_rrf'.")
+
+        if rerank:
+            return self.rerank(query, results, top_k=top_k)
+
+        return results[:top_k]
         
         
     def generate_response(self,
