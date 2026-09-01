@@ -2,7 +2,9 @@
 
 import os
 
-def get_documents(doc_path:str=r'C:\Users\anime\OneDrive\Desktop\RAG-implementation-from-scratch\rag\documents'):
+DEFAULT_DOCS_PATH = os.path.join(os.path.dirname(__file__), "documents")
+
+def get_documents(doc_path: str = DEFAULT_DOCS_PATH):
     """
     Retrieves all .txt documents from the specified directory and stores them
     in a list of dictionaries with id, name, and text.
