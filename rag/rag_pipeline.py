@@ -60,6 +60,7 @@ class RAGPipeline:
         self.generator = pipeline(
             "text-generation",
             model=generator_model,
+            model_kwargs={"torch_dtype": "auto"},
             dtype="auto",
         )
 
@@ -491,6 +492,7 @@ class RAGPipeline:
     def generate_response(self,
                           query: str,
                           retrieved_chunks: List[str],
+                          instructions: str = "You are a chat assistant who answers briefly using only the provided context.") -> str:
                           instructions: str = "You are a helpful and concise AI assistant. Answer the user's question using ONLY the provided context. If the context does not contain the answer, state that clearly.") -> str:
         """
         Generates a response using the retrieved chunks as context.
@@ -503,15 +505,20 @@ class RAGPipeline:
         Returns:
             str: Generated response from the LLM.
         """
+        # Combine the retrieved chunks into a single context string
+        context = " ".join(retrieved_chunks)
         if not retrieved_chunks:
             return "No relevant context found to answer the question."
 
+        # Construct the prompt for the language model
+        prompt = f"Context: {context}\n\nQuestion: {query}"
         # Format context with explicit chunk boundaries
         formatted_context = "\n\n".join([
             f"[Source Chunk {i+1}]:\n{chunk}"
             for i, chunk in enumerate(retrieved_chunks)
         ])
 
+        # Prepare the augmented prompt
         # Construct the augmented prompt
         prompt = f"Context Information:\n{formatted_context}\n\nQuestion: {query}\n\nAnswer:"
 
@@ -519,6 +526,10 @@ class RAGPipeline:
             {"role": "system", "content": instructions},
             {"role": "user", "content": prompt},
         ]
+        # Generate the response
+        response = self.generator(augmented_prompt, max_length=200, truncation=True)
+        # return response[0]["generated_text"]
+        return response[0]["generated_text"][-1]["content"]
 
         # Generate response cleanly
         response = self.generator(
